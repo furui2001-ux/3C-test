@@ -1,0 +1,82 @@
+{
+  "appTitle": "川越工フロアマップ",
+  "floors": {
+    "B1": {
+      "image": "B1.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "B1"
+    },
+    "1F": {
+      "image": "1F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [
+        {
+          "id": "P01",
+          "label": "地点1",
+          "note": "",
+          "nx": 0.256767,
+          "ny": 0.717268,
+          "visibleOnMap": true,
+          "pointValue": 0,
+          "showPointValue": true,
+          "icon": "📍"
+        },
+        {
+          "id": "P02",
+          "label": "地点2",
+          "note": "",
+          "nx": 0.259936,
+          "ny": 0.43648,
+          "visibleOnMap": true,
+          "pointValue": 0,
+          "showPointValue": true,
+          "icon": "📍"
+        }
+      ],
+      "visible": true,
+      "label": "1F"
+    },
+    "2F": {
+      "image": "2F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "2F"
+    },
+    "3F": {
+      "image": "3F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "3F"
+    },
+    "4F": {
+      "image": "4F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "4F"
+    },
+    "5F": {
+      "image": "5F.png",
+      "widthMeters": 235,
+      "heightMeters": 150,
+      "mapNorthDeg": 12,
+      "points": [],
+      "visible": true,
+      "label": "5F"
+    }
+  }
+}
