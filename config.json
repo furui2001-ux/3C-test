@@ -18,10 +18,10 @@
       "points": [
         {
           "id": "P01",
-          "label": "地点1",
+          "label": "玄関",
           "note": "",
-          "nx": 0.256767,
-          "ny": 0.717268,
+          "nx": 0.284497,
+          "ny": 0.674165,
           "visibleOnMap": true,
           "pointValue": 0,
           "showPointValue": true,
