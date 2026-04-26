@@ -157,48 +157,73 @@
       position: absolute;
       z-index: 7;
       transform: translate(-50%, -50%);
-      min-width: 36px;
-      min-height: 36px;
-      padding: 6px 8px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.96);
-      border: 1px solid #94a3b8;
+      min-width: 22px;
+      min-height: 22px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.86);
+      border: 1px solid rgba(100,116,139,.55);
       cursor: pointer;
       user-select: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,.10);
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
       display: flex;
       align-items: center;
-      gap: 6px;
-      line-height: 1.2;
+      gap: 3px;
+      line-height: 1.1;
+      max-width: 92px;
+      overflow: hidden;
     }
     .point-badge .spot-icon {
-      width: 22px;
-      height: 22px;
+      width: 16px;
+      height: 16px;
       border-radius: 999px;
       background: #eff6ff;
       color: #1d4ed8;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: 10px;
       flex: 0 0 auto;
     }
     .point-badge .spot-text {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 2px;
+      gap: 0;
+      min-width: 0;
     }
     .point-badge .spot-label {
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 800;
       color: #0f172a;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 62px;
     }
     .point-badge .spot-point {
-      font-size: 10px;
+      font-size: 8px;
       color: #475569;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 62px;
+    }
+    /* かなり縮小したい場合は、body に compact-spots を付ける */
+    body.compact-spots .point-badge {
+      min-width: 18px;
+      min-height: 18px;
+      padding: 1px;
+      background: rgba(255,255,255,.75);
+      border-radius: 999px;
+    }
+    body.compact-spots .point-badge .spot-text {
+      display: none;
+    }
+    body.compact-spots .point-badge .spot-icon {
+      width: 16px;
+      height: 16px;
+      font-size: 10px;
     }
     .point-badge.spot-hidden-user {
       display: none;
@@ -450,6 +475,7 @@
       <div class="inline-actions">
         <button type="button" onclick="resetViewTransform()">表示リセット</button>
         <button type="button" onclick="toggleScorePanel()">ポイント表示切替</button>
+        <button type="button" onclick="toggleCompactSpots()">スポット小型切替</button>
         <button type="button" onclick="resetCollectedPoints()">ポイントをリセット</button>
       </div>
       <div class="hint">歩幅は入力した瞬間に反映されます。ボタンの押し直しは不要です。</div>
@@ -565,6 +591,7 @@
     const GUIDE_KEY = "floorMapFirstGuideHidden";
     const SCORE_STORAGE_KEY = "floorMapCollectedPoints_v1";
     const SCORE_PANEL_VISIBLE_KEY = "floorMapScoreVisible_v1";
+    const COMPACT_SPOTS_KEY = "floorMapCompactSpots_v1";
 
     let currentPosition = { floor: null, nx: 0.5, ny: 0.5, label: "現在地" };
     let anchor = { enabled: false, floor: null, baseLat: null, baseLon: null, baseNx: 0.5, baseNy: 0.5, label: "" };
@@ -896,6 +923,16 @@
       const hidden = localStorage.getItem(SCORE_PANEL_VISIBLE_KEY) === "0";
       localStorage.setItem(SCORE_PANEL_VISIBLE_KEY, hidden ? "1" : "0");
       updateScoreUI();
+    }
+
+    function applyCompactSpots() {
+      document.body.classList.toggle("compact-spots", localStorage.getItem(COMPACT_SPOTS_KEY) === "1");
+    }
+
+    function toggleCompactSpots() {
+      const compact = localStorage.getItem(COMPACT_SPOTS_KEY) === "1";
+      localStorage.setItem(COMPACT_SPOTS_KEY, compact ? "0" : "1");
+      applyCompactSpots();
     }
 
     function resetCollectedPoints() {
@@ -1889,6 +1926,7 @@
       });
 
       updateScoreUI();
+      applyCompactSpots();
       buildFloorButtons();
 
       const visibleFloors = getVisibleFloors();
