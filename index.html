@@ -256,8 +256,31 @@
     .field input, .field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 14px; }
     .inline-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
     .inline-actions button { border: none; background: #eef2ff; color: #1d4ed8; border-radius: 12px; padding: 10px 12px; font-weight: 800; cursor: pointer; }
-    #qrReaderWrap { margin-top: 12px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 12px; display: none; box-shadow: var(--shadow); }
-    #qr-reader { width: 100%; }
+    #qrReaderWrap {
+      position: fixed;
+      inset: 0;
+      z-index: 1600;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.72);
+      padding: 20px;
+      backdrop-filter: blur(2px);
+    }
+    #qrReaderCard {
+      width: min(92vw, 520px);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: 0 18px 48px rgba(0,0,0,.22);
+      padding: 16px;
+    }
+    #qrReaderHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    #qrReaderTitle { font-size: 20px; font-weight: 800; margin: 0; }
+    #qrReaderClose { border: none; background: #eef2f7; border-radius: 12px; padding: 9px 12px; font-weight: 800; cursor: pointer; }
+    #qrReaderGuide { margin: 0 0 10px 0; color: #475569; line-height: 1.6; font-size: 14px; }
+    #qr-reader { width: 100%; overflow: hidden; border-radius: 18px; background: #000; min-height: 280px; }
+    #qrReaderHint { margin-top: 10px; font-size: 13px; color: #64748b; text-align: center; }
     #adminWrap { margin-top: 16px; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 14px; display: none; box-shadow: var(--shadow); }
     #adminWrap h3 { margin: 0 0 10px 0; font-size: 18px; }
     .slider-row { margin-bottom: 14px; }
@@ -346,7 +369,17 @@
       </div>
     </section>
 
-    <div id="qrReaderWrap"><div id="qr-reader"></div></div>
+    <div id="qrReaderWrap">
+      <div id="qrReaderCard">
+        <div id="qrReaderHead">
+          <h3 id="qrReaderTitle">QR補正</h3>
+          <button id="qrReaderClose" type="button" onclick="stopQrScanInternal()">閉じる</button>
+        </div>
+        <p id="qrReaderGuide">QRコードを中央の読み取り枠に入れてください。読み取ると自動で閉じます。</p>
+        <div id="qr-reader"></div>
+        <div id="qrReaderHint">読み取れないときは、少し離す・明るい場所で映す・画面の反射を避けると安定します。</div>
+      </div>
+    </div>
 
     <div id="adminWrap">
       <h3>管理者 詳細設定</h3>
@@ -462,6 +495,9 @@
     const statusChip = document.getElementById("statusChip");
     const scoreChip = document.getElementById("scoreChip");
     const qrReaderWrap = document.getElementById("qrReaderWrap");
+    qrReaderWrap.addEventListener("click", (e) => {
+      if (e.target === qrReaderWrap) stopQrScanInternal();
+    });
     const floorButtonsEl = document.getElementById("floorButtons");
     const adminWrap = document.getElementById("adminWrap");
     const appTitleEl = document.getElementById("appTitle");
@@ -1049,30 +1085,6 @@
       qrTextOutput.value = `floor=${currentFloor}&point=${pointId}&points=${value}`;
     }
 
-    function saveFloorMeta() {(nx, ny) {
-      if (!isAdmin) return;
-
-      const points = getFloorConfig(currentFloor).points || [];
-      const id = "P" + String(points.length + 1).padStart(2, "0");
-
-      points.push({
-        id,
-        label: `地点${points.length + 1}`,
-        note: "",
-        nx: Number(nx.toFixed(6)),
-        ny: Number(ny.toFixed(6))
-      });
-
-      getFloorConfig(currentFloor).points = points;
-      renderPoints();
-      renderPointsList();
-      exportConfigToTextarea();
-    }
-
-    function generateQrText(pointId) {
-      qrTextOutput.value = `floor=${currentFloor}&point=${pointId}`;
-    }
-
     function saveFloorMeta() {
       const f = getFloorConfig(currentFloor);
       f.widthMeters = Number(widthMetersRange.value);
@@ -1222,7 +1234,7 @@
       pointMode = false;
       updateModeButtons();
 
-      qrReaderWrap.style.display = "block";
+      qrReaderWrap.style.display = "flex";
       qrEnabled = true;
       updateModeButtons();
       updateStatus("QR読取中");
@@ -1232,12 +1244,14 @@
       try {
         await qrScanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: 220 },
+          { fps: 10, qrbox: { width: 240, height: 240 } },
           (decodedText) => {
+            updateStatus("QRを読み取りました");
             parseQrText(decodedText);
             stopQrScanInternal();
           }
         );
+        updateStatus("QR読取中");
       } catch (e) {
         qrEnabled = false;
         qrReaderWrap.style.display = "none";
