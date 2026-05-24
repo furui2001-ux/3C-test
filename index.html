@@ -180,16 +180,18 @@
     .point-badge {
       position: absolute;
       z-index: 7;
-      transform: translate(-50%, -50%);
-      width: 24px;
-      height: 24px;
-      padding: 2px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.70);
-      border: 1px solid rgba(100,116,139,.50);
+      transform: translate(-50%, -50%) scale(var(--spot-inv-scale, 1));
+      transform-origin: center center;
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      margin: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent !important;
       cursor: pointer;
       user-select: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+      box-shadow: none !important;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -197,16 +199,21 @@
       line-height: 1;
     }
     .point-badge .spot-icon {
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      background: #eff6ff;
-      color: #1d4ed8;
+      width: auto;
+      height: auto;
+      border: none !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: #dc2626;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 19px;
+      line-height: 1;
+      filter: none !important;
       flex: 0 0 auto;
+      text-shadow: none !important;
     }
     .point-badge .spot-text {
       display: none;
@@ -221,7 +228,7 @@
       max-width: 160px;
       padding: 6px 9px;
       border-radius: 13px;
-      background: rgba(255,255,255,.94);
+      background: rgba(255,255,255,.96);
       border: 1px solid rgba(148,163,184,.70);
       box-shadow: 0 8px 20px rgba(15,23,42,.18);
       line-height: 1.25;
@@ -239,7 +246,7 @@
       transform: translateX(-50%);
       border-width: 6px 6px 0 6px;
       border-style: solid;
-      border-color: rgba(255,255,255,.94) transparent transparent transparent;
+      border-color: rgba(255,255,255,.96) transparent transparent transparent;
     }
     .point-badge .spot-label {
       font-size: 12px;
@@ -259,15 +266,12 @@
       max-width: 140px;
     }
     body.compact-spots .point-badge {
-      width: 20px;
-      height: 20px;
-      padding: 1px;
-      background: rgba(255,255,255,.55);
-    }
-    body.compact-spots .point-badge .spot-icon {
       width: 16px;
       height: 16px;
-      font-size: 10px;
+      background: transparent !important;
+    }
+    body.compact-spots .point-badge .spot-icon {
+      font-size: 16px;
     }
     body.compact-spots .point-badge .spot-text {
       display: none;
@@ -278,17 +282,18 @@
     .point-badge.spot-hidden-user {
       display: none;
     }
-    .point-badge.spot-collected {
-      background: rgba(236,253,245,.78);
-      border-color: #10b981;
+    .point-badge.spot-collected,
+    .point-badge.spot-collected .spot-icon {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
     }
     .point-badge.spot-collected .spot-icon {
-      background: #10b981;
-      color: white;
+      color: #059669;
     }
     .point-badge.spot-admin-hidden {
       opacity: .42;
-      outline: 2px dashed #cbd5e1;
+      outline: 1px dashed #cbd5e1;
       outline-offset: 2px;
     }
     .floor-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 10px; margin-top: 12px; }
@@ -389,6 +394,30 @@
 
     @media (max-width: 700px) {
       .app { padding: 12px 10px 28px; }
+      .titlebar { display: block; margin-bottom: 12px; }
+      .titlebar h1 {
+        display: block;
+        width: 100%;
+        white-space: nowrap;
+        font-size: 28px;
+        line-height: 1.25;
+        margin-bottom: 10px;
+      }
+      .titlebar > div {
+        display: flex !important;
+        width: 100%;
+        gap: 8px !important;
+        align-items: stretch !important;
+        flex-wrap: wrap !important;
+      }
+      .rally-score-chip {
+        width: 100%;
+        justify-content: space-between;
+        padding: 8px 12px;
+      }
+      .rally-score-chip .rally-title { font-size: 14px; }
+      .rally-score-chip .rally-score { font-size: 17px; }
+      .status-chip { width: 100%; text-align: center; }
       .quick-guide { grid-template-columns: 1fr; }
       .track-grid { grid-template-columns: repeat(2, 1fr); }
       .point-row { grid-template-columns: 1fr; }
@@ -418,7 +447,7 @@
       </div>
 
       <div id="mapWrap">
-        <div id="mapTransform">
+        <div id="mapTransform" style="--spot-inv-scale:1;">
           <img id="mapImage" src="" alt="フロアマップ" />
           <div id="accuracyCircle"></div>
           <div id="markerWrap">
@@ -704,6 +733,15 @@
     function dismissGuide(hideForever) {
       firstGuide.classList.remove("show");
       if (hideForever) localStorage.setItem(GUIDE_KEY, "1");
+      if (trackingMode === "step") {
+        setTrackingMode("step");
+      } else if (trackingMode === "auto") {
+        if (trackingMode === "step") {
+        setTrackingMode("step");
+      } else {
+        enableDefaultStepTrackingFromGesture();
+      }
+      }
     }
 
     function floorOrder() {
@@ -1054,10 +1092,12 @@
         el.dataset.pointId = p.id;
         el.style.left = `${offsetX + p.nx * drawW}px`;
         el.style.top = `${offsetY + p.ny * drawH}px`;
+        el.style.setProperty("--spot-inv-scale", String(1 / Math.max(viewScale || 1, 0.01)));
 
         const pointText = p.pointValue > 0 && p.showPointValue ? `+${p.pointValue} pt` : (p.note || "");
+        const pinIcon = collected ? "✓" : (p.icon === "📍" ? "📍︎" : p.icon);
         el.innerHTML = `
-          <span class="spot-icon">${collected ? "✅" : p.icon}</span>
+          <span class="spot-icon">${pinIcon}</span>
           <span class="spot-text">
             <span class="spot-label">${p.label}</span>
             <span class="spot-point">${pointText || (p.visibleOnMap ? "スポット" : "非表示")}</span>
@@ -1281,6 +1321,11 @@
 
       setNormalizedPosition(currentFloor, nx, ny, labelText);
       resetStepTracking();
+      if (trackingMode === "step") {
+        setTrackingMode("step");
+      } else if (trackingMode === "auto") {
+        enableDefaultStepTrackingFromGesture();
+      }
 
       uiHint.textContent = "現在地を設定しました。歩くかGPS追従で移動できます。ズレたらもう一度「位置補正」です。";
     }
@@ -1528,6 +1573,32 @@
       return true;
     }
 
+    async function forceStepTrackingIfDefault() {
+      if (trackingMode !== "step") return;
+      activeTrackingSource = "step";
+      stepDetectionEnabled = true;
+      updateTrackingButtons();
+      updateTrackingInfo();
+      await enableDefaultStepTrackingFromGesture();
+    }
+
+    async function enableDefaultStepTrackingFromGesture() {
+      if (trackingMode !== "step" && trackingMode !== "auto") return;
+
+      if (!motionEnabled) {
+        const granted = await ensureMotionPermission();
+        if (granted) {
+          window.addEventListener("devicemotion", handleMotion, true);
+          motionEnabled = true;
+        }
+      }
+
+      activeTrackingSource = trackingMode === "step" ? "step" : resolveTrackingSource();
+      stepDetectionEnabled = activeTrackingSource === "step";
+      updateTrackingButtons();
+      updateTrackingInfo();
+    }
+
     async function setTrackingMode(mode) {
       trackingMode = mode;
 
@@ -1542,6 +1613,7 @@
       }
 
       activeTrackingSource = resolveTrackingSource();
+      if (trackingMode === "step") activeTrackingSource = "step";
       stepDetectionEnabled = activeTrackingSource === "step";
       updateTrackingButtons();
       updateTrackingInfo();
@@ -1737,6 +1809,10 @@
     function applyMapTransform() {
       mapTransform.style.transform =
         `translate(${viewTranslateX}px, ${viewTranslateY}px) rotate(${viewRotation}deg) scale(${viewScale})`;
+      mapTransform.style.setProperty("--spot-inv-scale", String(1 / Math.max(viewScale || 1, 0.01)));
+      document.querySelectorAll(".point-badge").forEach((el) => {
+        el.style.setProperty("--spot-inv-scale", String(1 / Math.max(viewScale || 1, 0.01)));
+      });
     }
 
     function recenterOnUser() {
@@ -2008,6 +2084,14 @@
       };
 
       stepLengthMeters = Number(stepLengthInput.value || 0.70);
+      trackingMode = config.defaultTrackingMode || "step";
+      if (trackingMode === "step") {
+        activeTrackingSource = "step";
+        stepDetectionEnabled = true;
+      } else {
+        activeTrackingSource = resolveTrackingSource();
+        stepDetectionEnabled = activeTrackingSource === "step";
+      }
       updateModeButtons();
       updateTrackingButtons();
       updateTrackingInfo();
@@ -2015,11 +2099,12 @@
     }
 
 
-    // iPhone Safari ではユーザー操作後に方位センサー許可が必要な場合がある。
+    // iPhone Safari ではユーザー操作後にセンサー許可が必要な場合がある。
     window.addEventListener("pointerdown", () => {
       if (!headingEnabled) {
         startHeading();
       }
+      enableDefaultStepTrackingFromGesture();
     }, { once: true });
 
     loadConfig();
