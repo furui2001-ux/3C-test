@@ -34,6 +34,30 @@
     .titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
     h1 { margin: 0; font-size: 22px; font-weight: 800; }
     .status-chip { font-size: 12px; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
+    .rally-score-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 2px solid #f9a8d4;
+      background: linear-gradient(135deg, #fff7ed, #fdf2f8);
+      box-shadow: 0 4px 12px rgba(236,72,153,.16);
+      white-space: nowrap;
+      font-weight: 800;
+    }
+    .rally-score-chip .rally-title {
+      color: #be185d;
+      font-size: 12px;
+    }
+    .rally-score-chip .rally-score {
+      color: #1d4ed8;
+      font-size: 14px;
+      background: #fff;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      padding: 3px 8px;
+    }
     .map-card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow); padding: 12px; }
     .quick-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .guide-pill { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; font-size: 14px; color: #334155; line-height: 1.55; }
@@ -157,79 +181,105 @@
       position: absolute;
       z-index: 7;
       transform: translate(-50%, -50%);
-      min-width: 22px;
-      min-height: 22px;
-      padding: 2px 5px;
+      width: 24px;
+      height: 24px;
+      padding: 2px;
       border-radius: 999px;
-      background: rgba(255,255,255,.86);
-      border: 1px solid rgba(100,116,139,.55);
+      background: rgba(255,255,255,.70);
+      border: 1px solid rgba(100,116,139,.50);
       cursor: pointer;
       user-select: none;
       box-shadow: 0 2px 6px rgba(0,0,0,.08);
       display: flex;
       align-items: center;
-      gap: 3px;
-      line-height: 1.1;
-      max-width: 92px;
-      overflow: hidden;
+      justify-content: center;
+      overflow: visible;
+      line-height: 1;
     }
     .point-badge .spot-icon {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       border-radius: 999px;
       background: #eff6ff;
       color: #1d4ed8;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 12px;
       flex: 0 0 auto;
     }
     .point-badge .spot-text {
-      display: flex;
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: -8px;
+      transform: translate(-50%, -100%);
       flex-direction: column;
       align-items: flex-start;
-      gap: 0;
-      min-width: 0;
+      gap: 1px;
+      min-width: 92px;
+      max-width: 160px;
+      padding: 6px 9px;
+      border-radius: 13px;
+      background: rgba(255,255,255,.94);
+      border: 1px solid rgba(148,163,184,.70);
+      box-shadow: 0 8px 20px rgba(15,23,42,.18);
+      line-height: 1.25;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .point-badge.spot-open .spot-text {
+      display: flex;
+    }
+    .point-badge .spot-text::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -6px;
+      transform: translateX(-50%);
+      border-width: 6px 6px 0 6px;
+      border-style: solid;
+      border-color: rgba(255,255,255,.94) transparent transparent transparent;
     }
     .point-badge .spot-label {
-      font-size: 9px;
-      font-weight: 800;
+      font-size: 12px;
+      font-weight: 900;
       color: #0f172a;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 62px;
+      max-width: 140px;
     }
     .point-badge .spot-point {
-      font-size: 8px;
+      font-size: 10px;
       color: #475569;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 62px;
+      max-width: 140px;
     }
-    /* かなり縮小したい場合は、body に compact-spots を付ける */
     body.compact-spots .point-badge {
-      min-width: 18px;
-      min-height: 18px;
+      width: 20px;
+      height: 20px;
       padding: 1px;
-      background: rgba(255,255,255,.75);
-      border-radius: 999px;
-    }
-    body.compact-spots .point-badge .spot-text {
-      display: none;
+      background: rgba(255,255,255,.55);
     }
     body.compact-spots .point-badge .spot-icon {
       width: 16px;
       height: 16px;
       font-size: 10px;
     }
+    body.compact-spots .point-badge .spot-text {
+      display: none;
+    }
+    body.compact-spots .point-badge.spot-open .spot-text {
+      display: flex;
+    }
     .point-badge.spot-hidden-user {
       display: none;
     }
     .point-badge.spot-collected {
-      background: #ecfdf5;
+      background: rgba(236,253,245,.78);
       border-color: #10b981;
     }
     .point-badge.spot-collected .spot-icon {
@@ -353,7 +403,10 @@
     <div class="titlebar">
       <h1 id="appTitle">川越工フロアマップ</h1>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <div id="scoreChip" class="status-chip">0 pt / 0スポット</div>
+        <div id="scoreChip" class="rally-score-chip">
+          <span class="rally-title">化学科デジタルスタンプラリー</span>
+          <span class="rally-score">0 pt / 0スポット</span>
+        </div>
         <div id="statusChip" class="status-chip">初期表示</div>
       </div>
     </div>
@@ -361,7 +414,7 @@
     <section class="map-card">
       <div class="quick-guide">
         <div class="guide-pill"><strong>最初にすること</strong>「位置補正」を押して、地図を1回タップして現在地を置きます。</div>
-        <div class="guide-pill"><strong>使い方</strong>その後は歩くと動きます。ズレたらもう一度「位置補正」です。</div>
+        <div class="guide-pill"><strong>使い方</strong>その後はGPS追従または歩数で動きます。ズレたら位置補正・QR補正です。</div>
       </div>
 
       <div id="mapWrap">
@@ -390,7 +443,7 @@
       </div>
 
       <div class="below-note" id="uiHint">
-        初めて使うときは「位置補正」→ 地図をタップ → 「GPS追従」または「自動」にしてください。スポットを回るとポイントがたまります。
+        初めて使うときは「位置補正」→ 地図をタップ → 「GPS追従」です。QR補正を使うと位置補正とスタンプ取得ができます。
       </div>
     </section>
 
@@ -497,8 +550,9 @@
       <p>最初の操作は2つだけです。現在地を置いて、その後に歩くかGPS追従を使います。</p>
       <div class="guide-steps">
         <div class="guide-step"><strong>① 位置補正</strong>「位置補正」を押して、今いる場所を地図で1回タップします。</div>
-        <div class="guide-step"><strong>② 追従開始</strong>GPS追従を押すか、設定で「自動」を選ぶと位置が動きます。</div>
+        <div class="guide-step"><strong>② 追従開始</strong>GPS追従を選ぶと位置が動きます。設定の初期状態は「歩数」です。</div>
         <div class="guide-step"><strong>③ ズレたら直す</strong>位置がズレたら、もう一度「位置補正」を押してタップします。</div>
+        <div class="guide-step"><strong>④ QR補正</strong>校内のQRコードを読み取ると、その地点に位置補正できます。ポイント付きQRならスタンプラリーの点数も入ります。</div>
       </div>
       <div class="guide-actions">
         <button class="guide-secondary" type="button" onclick="dismissGuide(true)">次回は表示しない</button>
@@ -576,7 +630,7 @@
     let lastGpsLat = null;
     let lastGpsLon = null;
 
-    let trackingMode = "off";
+    let trackingMode = "step";
     let activeTrackingSource = "off";
     let stepLengthMeters = 0.70;
     let stepCount = 0;
@@ -915,7 +969,10 @@
     function updateScoreUI() {
       if (!scoreChip) return;
       const summary = getCollectedSummary();
-      scoreChip.textContent = `${summary.total} pt / ${summary.count}スポット`;
+      scoreChip.innerHTML = `
+        <span class="rally-title">化学科デジタルスタンプラリー</span>
+        <span class="rally-score">${summary.total} pt / ${summary.count}スポット</span>
+      `;
       scoreChip.style.display = localStorage.getItem(SCORE_PANEL_VISIBLE_KEY) === "0" ? "none" : "inline-flex";
     }
 
@@ -1012,12 +1069,16 @@
             draggingPointId = p.id;
             e.stopPropagation();
           });
-
-          el.addEventListener("click", (e) => {
-            e.stopPropagation();
-            generateQrText(p.id);
-          });
         }
+
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          document.querySelectorAll(".point-badge.spot-open").forEach((badge) => {
+            if (badge !== el) badge.classList.remove("spot-open");
+          });
+          el.classList.toggle("spot-open");
+          if (isAdmin) generateQrText(p.id);
+        });
 
         mapTransform.appendChild(el);
       });
@@ -1799,6 +1860,9 @@
     }
 
     mapWrap.addEventListener("click", async (event) => {
+      if (!event.target.closest || !event.target.closest(".point-badge")) {
+        document.querySelectorAll(".point-badge.spot-open").forEach((badge) => badge.classList.remove("spot-open"));
+      }
       if ((!manualMode && !pointMode) || draggingPointId) return;
 
       const pos = clientToNormalized(event.clientX, event.clientY);
