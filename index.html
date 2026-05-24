@@ -180,7 +180,7 @@
     .point-badge {
       position: absolute;
       z-index: 7;
-      transform: translate(-50%, -50%) scale(var(--spot-inv-scale, 1));
+      transform: translate(-50%, -50%);
       transform-origin: center center;
       width: 18px;
       height: 18px;
@@ -289,7 +289,7 @@
       box-shadow: none !important;
     }
     .point-badge.spot-collected .spot-icon {
-      color: #059669;
+      color: #dc2626;
     }
     .point-badge.spot-admin-hidden {
       opacity: .42;
@@ -447,7 +447,7 @@
       </div>
 
       <div id="mapWrap">
-        <div id="mapTransform" style="--spot-inv-scale:1;">
+        <div id="mapTransform" >
           <img id="mapImage" src="" alt="フロアマップ" />
           <div id="accuracyCircle"></div>
           <div id="markerWrap">
@@ -1092,10 +1092,9 @@
         el.dataset.pointId = p.id;
         el.style.left = `${offsetX + p.nx * drawW}px`;
         el.style.top = `${offsetY + p.ny * drawH}px`;
-        el.style.setProperty("--spot-inv-scale", String(1 / Math.max(viewScale || 1, 0.01)));
 
         const pointText = p.pointValue > 0 && p.showPointValue ? `+${p.pointValue} pt` : (p.note || "");
-        const pinIcon = collected ? "✓" : (p.icon === "📍" ? "📍︎" : p.icon);
+        const pinIcon = "📍";
         el.innerHTML = `
           <span class="spot-icon">${pinIcon}</span>
           <span class="spot-text">
@@ -1809,9 +1808,7 @@
     function applyMapTransform() {
       mapTransform.style.transform =
         `translate(${viewTranslateX}px, ${viewTranslateY}px) rotate(${viewRotation}deg) scale(${viewScale})`;
-      mapTransform.style.setProperty("--spot-inv-scale", String(1 / Math.max(viewScale || 1, 0.01)));
       document.querySelectorAll(".point-badge").forEach((el) => {
-        el.style.setProperty("--spot-inv-scale", String(1 / Math.max(viewScale || 1, 0.01)));
       });
     }
 
