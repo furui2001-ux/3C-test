@@ -219,7 +219,7 @@
       display: none;
       position: absolute;
       left: 50%;
-      top: -8px;
+      top: -22px;
       transform: translate(-50%, -100%);
       flex-direction: column;
       align-items: flex-start;
@@ -233,7 +233,10 @@
       box-shadow: 0 8px 20px rgba(15,23,42,.18);
       line-height: 1.25;
       pointer-events: none;
-      z-index: 20;
+      z-index: 90;
+    }
+    .point-badge.spot-open {
+      z-index: 80;
     }
     .point-badge.spot-open .spot-text {
       display: flex;
@@ -242,9 +245,9 @@
       content: "";
       position: absolute;
       left: 50%;
-      bottom: -6px;
+      bottom: -7px;
       transform: translateX(-50%);
-      border-width: 6px 6px 0 6px;
+      border-width: 7px 7px 0 7px;
       border-style: solid;
       border-color: rgba(255,255,255,.96) transparent transparent transparent;
     }
