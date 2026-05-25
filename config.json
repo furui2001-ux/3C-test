@@ -30,19 +30,6 @@
           "iconAfter": "☑️"
         },
         {
-          "id": "P02",
-          "label": "地点2",
-          "note": "",
-          "nx": 0.263224,
-          "ny": 0.4423,
-          "visibleOnMap": true,
-          "pointValue": 0,
-          "showPointValue": true,
-          "icon": "📍",
-          "iconBefore": "📍",
-          "iconAfter": "☑️"
-        },
-        {
           "id": "P03",
           "label": "基礎計測室",
           "note": "①面接X②面接Y",
