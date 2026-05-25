@@ -248,23 +248,28 @@
       border-style: solid;
       border-color: rgba(255,255,255,.96) transparent transparent transparent;
     }
-    .point-badge .spot-label {
-      font-size: 12px;
-      font-weight: 900;
-      color: #0f172a;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 140px;
-    }
-    .point-badge .spot-point {
-      font-size: 10px;
-      color: #475569;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 140px;
-    }
+   .point-badge .spot-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: #0f172a;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: 160px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.point-badge .spot-point {
+  font-size: 10px;
+  color: #475569;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: 160px;
+  line-height: 1.35;
+  word-break: break-word;
+}
     body.compact-spots .point-badge {
       width: 16px;
       height: 16px;
