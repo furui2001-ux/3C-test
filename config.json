@@ -25,7 +25,9 @@
           "visibleOnMap": true,
           "pointValue": 0,
           "showPointValue": true,
-          "icon": "📍"
+          "icon": "📍",
+          "iconBefore": "📍",
+          "iconAfter": "☑️"
         },
         {
           "id": "P02",
@@ -36,7 +38,9 @@
           "visibleOnMap": true,
           "pointValue": 0,
           "showPointValue": true,
-          "icon": "📍"
+          "icon": "📍",
+          "iconBefore": "📍",
+          "iconAfter": "☑️"
         }
       ],
       "visible": true,
