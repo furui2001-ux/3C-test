@@ -535,6 +535,15 @@
       <h3>管理者 詳細設定</h3>
       <div style="margin-bottom:12px;">現在フロア: <strong id="adminCurrentFloor">1F</strong></div>
 
+      <div class="setting-card">
+        <h3>スタンプラリー設定</h3>
+        <div class="field">
+          <label for="rallyGoalPointsInput">ゴール判定に必要なポイント</label>
+          <input id="rallyGoalPointsInput" type="number" min="0" step="1" value="0" />
+        </div>
+        <div class="hint">例：10 と設定すると、表示は「0/10pt」になり、ゴールQRでは10pt以上で達成になります。0の場合は、点数付きスポットの合計を自動で必要ポイントにします。</div>
+      </div>
+
       <div class="slider-row">
         <label>画像横幅（m）: <span id="widthMetersValue"></span></label>
         <input id="widthMetersRange" type="range" min="5" max="300" step="0.5" />
@@ -662,6 +671,7 @@
     const manualBtn = document.getElementById("manualBtn");
     const headingBtn = document.getElementById("headingBtn");
     const adminCurrentFloor = document.getElementById("adminCurrentFloor");
+    const rallyGoalPointsInput = document.getElementById("rallyGoalPointsInput");
     const widthMetersRange = document.getElementById("widthMetersRange");
     const heightMetersRange = document.getElementById("heightMetersRange");
     const mapNorthDegRange = document.getElementById("mapNorthDegRange");
@@ -893,6 +903,7 @@
 
       const f = getFloorConfig(currentFloor);
       adminCurrentFloor.textContent = currentFloor;
+      if (rallyGoalPointsInput) rallyGoalPointsInput.value = Number(config.rallyGoalPoints || 0);
       widthMetersRange.value = f.widthMeters;
       heightMetersRange.value = f.heightMeters;
       mapNorthDegRange.value = f.mapNorthDeg;
@@ -1040,6 +1051,9 @@
     }
 
     function getRequiredPointTotal() {
+      const manualGoal = Number(config.rallyGoalPoints || 0);
+      if (manualGoal > 0) return manualGoal;
+
       let required = 0;
       Object.values(config.floors || {}).forEach((floor) => {
         (floor.points || []).forEach((p) => {
@@ -1138,7 +1152,7 @@
 
       scoreChip.innerHTML = `
         <span class="rally-title">化学科デジタルスタンプラリー</span>
-        <span class="rally-score">${finished ? "終了" : `${summary.total} pt / ${summary.count}スポット${required > 0 ? ` / 全${required}pt` : ""}`}</span>
+        <span class="rally-score">${finished ? "終了" : `${summary.total}/${required > 0 ? required : 0}pt`}</span>
       `;
       scoreChip.style.display = localStorage.getItem(SCORE_PANEL_VISIBLE_KEY) === "0" ? "none" : "inline-flex";
     }
@@ -1161,6 +1175,7 @@
 
     function resetCollectedPoints() {
       localStorage.removeItem(SCORE_STORAGE_KEY);
+      localStorage.removeItem(PRIZE_CLAIMED_KEY);
       updateScoreUI();
       renderPoints();
       updateStatus("ポイントをリセットしました");
@@ -2270,6 +2285,15 @@
       };
     }
 
+    if (rallyGoalPointsInput) {
+      rallyGoalPointsInput.addEventListener("change", () => {
+        config.rallyGoalPoints = Number(rallyGoalPointsInput.value || 0);
+        updateScoreUI();
+        exportConfigToTextarea();
+        updateStatus(`必要ポイントを${config.rallyGoalPoints}ptに設定しました`);
+      });
+    }
+
     widthMetersRange.addEventListener("input", () => {
       widthMetersValue.textContent = widthMetersRange.value;
     });
@@ -2287,6 +2311,7 @@
       config = await res.json();
 
       appTitleEl.textContent = config.appTitle || "川越工フロアマップ";
+      if (!("rallyGoalPoints" in config)) config.rallyGoalPoints = 0;
 
       const params = new URLSearchParams(location.search);
       isAdmin = params.get("admin") === "1";
