@@ -567,7 +567,10 @@
 
       <div id="pointsList"></div>
       <textarea id="configOutput"></textarea>
-      <input id="qrTextOutput" readonly placeholder="選択した地点の短いQR文字列が表示されます" />
+      <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+        <input id="qrTextOutput" readonly placeholder="選択した地点の短いQR文字列が表示されます" style="flex:1; min-width:220px;" />
+        <button type="button" onclick="generateFinishQrText()" style="border:none; border-radius:12px; padding:10px 12px; font-weight:900; background:#fce7f3; color:#be185d;">ゴールQR</button>
+      </div>
     </div>
   </div>
 
@@ -716,6 +719,7 @@
     const GPS_BAD_ACCURACY = 6;
     const GUIDE_KEY = "floorMapFirstGuideHidden";
     const SCORE_STORAGE_KEY = "floorMapCollectedPoints_v1";
+    const PRIZE_CLAIMED_KEY = "floorMapPrizeClaimed_v1";
     const SCORE_PANEL_VISIBLE_KEY = "floorMapScoreVisible_v1";
     const COMPACT_SPOTS_KEY = "floorMapCompactSpots_v1";
 
@@ -1035,6 +1039,86 @@
       return !!data[getPointStorageId(floor, pointId)];
     }
 
+    function getRequiredPointTotal() {
+      let required = 0;
+      Object.values(config.floors || {}).forEach((floor) => {
+        (floor.points || []).forEach((p) => {
+          const normalized = normalizePointData(p);
+          if (normalized.pointValue > 0) required += normalized.pointValue;
+        });
+      });
+      return required;
+    }
+
+    function isPrizeClaimed() {
+      return localStorage.getItem(PRIZE_CLAIMED_KEY) === "1";
+    }
+
+    function setPrizeClaimed() {
+      localStorage.setItem(PRIZE_CLAIMED_KEY, "1");
+    }
+
+    function getRemainingPointTotal() {
+      const required = getRequiredPointTotal();
+      const summary = getCollectedSummary();
+      return Math.max(0, required - summary.total);
+    }
+
+    function showRallyMessage(title, message) {
+      const modal = document.createElement("div");
+      modal.style.position = "fixed";
+      modal.style.inset = "0";
+      modal.style.zIndex = "1800";
+      modal.style.display = "flex";
+      modal.style.alignItems = "center";
+      modal.style.justifyContent = "center";
+      modal.style.background = "rgba(15,23,42,.55)";
+      modal.style.padding = "18px";
+
+      modal.innerHTML = `
+        <div style="width:min(420px,100%); background:#fff; border-radius:22px; padding:20px; box-shadow:0 20px 50px rgba(0,0,0,.22); text-align:center;">
+          <div style="font-size:24px; font-weight:900; color:#0f172a; margin-bottom:10px;">${title}</div>
+          <div style="font-size:17px; line-height:1.7; color:#334155; white-space:pre-line;">${message}</div>
+          <button type="button" style="margin-top:18px; border:none; border-radius:14px; padding:12px 18px; font-weight:900; color:#fff; background:#2563eb;">閉じる</button>
+        </div>
+      `;
+      modal.querySelector("button").addEventListener("click", () => modal.remove());
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) modal.remove();
+      });
+      document.body.appendChild(modal);
+    }
+
+    function handleFinishQr() {
+      const required = getRequiredPointTotal();
+      const summary = getCollectedSummary();
+      const remaining = Math.max(0, required - summary.total);
+
+      if (required <= 0) {
+        showRallyMessage("スタンプラリー未設定", "点数が設定されたスポットがありません。管理者モードで取得点数を設定してください。");
+        updateStatus("ゴール判定できません");
+        return;
+      }
+
+      if (isPrizeClaimed()) {
+        showRallyMessage("受け取り済みです", "この端末では、すでに景品受け取り済みとして記録されています。");
+        updateStatus("景品受け取り済み");
+        updateScoreUI();
+        return;
+      }
+
+      if (remaining > 0) {
+        showRallyMessage("あと少しです", `景品交換まで、あと ${remaining} pt 必要です。\nまだ回っていないスポットを探してみてください。`);
+        updateStatus(`あと${remaining}pt`);
+        return;
+      }
+
+      setPrizeClaimed();
+      updateScoreUI();
+      showRallyMessage("おめでとうございます！", "化学科デジタルスタンプラリー達成です。\nこの画面を係の人に見せてください。");
+      updateStatus("スタンプラリー終了");
+    }
+
     function getCollectedSummary() {
       const data = getCollectedData();
       let total = 0;
@@ -1049,9 +1133,12 @@
     function updateScoreUI() {
       if (!scoreChip) return;
       const summary = getCollectedSummary();
+      const required = getRequiredPointTotal();
+      const finished = isPrizeClaimed();
+
       scoreChip.innerHTML = `
         <span class="rally-title">化学科デジタルスタンプラリー</span>
-        <span class="rally-score">${summary.total} pt / ${summary.count}スポット</span>
+        <span class="rally-score">${finished ? "終了" : `${summary.total} pt / ${summary.count}スポット${required > 0 ? ` / 全${required}pt` : ""}`}</span>
       `;
       scoreChip.style.display = localStorage.getItem(SCORE_PANEL_VISIBLE_KEY) === "0" ? "none" : "inline-flex";
     }
@@ -1295,6 +1382,11 @@
       qrTextOutput.value = `floor=${currentFloor}&point=${pointId}&points=${value}`;
     }
 
+    function generateFinishQrText() {
+      qrTextOutput.value = "finish=1";
+      updateStatus("ゴールQR文字列を表示しました");
+    }
+
     function saveFloorMeta() {
       const f = getFloorConfig(currentFloor);
       f.widthMeters = Number(widthMetersRange.value);
@@ -1515,6 +1607,13 @@
 
     function parseQrText(decodedText) {
       const params = new URLSearchParams(decodedText);
+
+      const finishValue = params.get("finish") || params.get("goal") || params.get("complete");
+      if (finishValue === "1" || finishValue === "true" || finishValue === "yes") {
+        handleFinishQr();
+        return;
+      }
+
       const floor = params.get("floor") || currentFloor;
       const pointId = params.get("point");
       const nx = params.get("nx");
