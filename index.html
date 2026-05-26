@@ -735,6 +735,8 @@
     let gestureStartRotation = 0;
     let gestureStartTranslateX = 0;
     let gestureStartTranslateY = 0;
+    let gestureStartLocalX = 0;
+    let gestureStartLocalY = 0;
     let gestureStartCenterX = 0;
     let gestureStartCenterY = 0;
 
@@ -1153,6 +1155,10 @@
         }
 
         el.addEventListener("click", (e) => {
+          // 位置補正中・地点追加中は、📍の吹き出しより「地図をタップして位置を置く」操作を優先する。
+          // ここで止めないことで、親要素 mapWrap のクリック処理へ渡す。
+          if (manualMode || pointMode) return;
+
           e.preventDefault();
           e.stopPropagation();
 
@@ -1474,19 +1480,36 @@
       return points.find((p) => p.id === pointId) || null;
     }
 
+    async function applyQrHeadingCorrection() {
+      // QRを読んだ瞬間にスマホ背面カメラが向いている方向を、現在の向きとして扱う。
+      // 既に「向き補正」で固定していた場合も、QR補正後は自動のコンパス向きへ戻す。
+      await startHeading();
+
+      headingLocked = false;
+      if (compassHeadingDeg != null || rawHeadingDeg != null) {
+        headingOffsetStep = 0;
+        localStorage.setItem("headingOffsetStep_v4", headingOffsetStep);
+      }
+
+      renderHeading();
+      updateModeButtons();
+    }
+
     function applyQrAnchor(floor, nx, ny, labelText) {
+      applyQrHeadingCorrection();
+
       getOnePosition()
         .then((pos) => {
           switchFloor(floor);
           enableAnchor(nx, ny, labelText, pos.coords.latitude, pos.coords.longitude);
           ignoreGpsUntil = Date.now() + 3000;
           lastAccuracyMeters = pos.coords.accuracy || 0;
-          updateStatus("QR補正完了");
+          updateStatus("QR補正完了（位置・向き）");
         })
         .catch(() => {
           switchFloor(floor);
           setNormalizedPosition(floor, nx, ny, labelText);
-          updateStatus("QR補正完了（GPS取得なし）");
+          updateStatus("QR補正完了（位置・向き／GPS取得なし）");
         });
     }
 
@@ -1908,6 +1931,45 @@
       };
     }
 
+    function screenToLocalPoint(clientX, clientY, scale = viewScale, rotation = viewRotation, tx = viewTranslateX, ty = viewTranslateY) {
+      const rect = mapWrap.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+
+      let x = clientX - rect.left;
+      let y = clientY - rect.top;
+
+      x -= tx;
+      y -= ty;
+
+      const dx = x - cx;
+      const dy = y - cy;
+
+      const rad = -rotation * Math.PI / 180;
+      const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+      const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+      return {
+        x: rx / scale + cx,
+        y: ry / scale + cy
+      };
+    }
+
+    function localToScreenWithoutTranslate(localX, localY, scale, rotation) {
+      const rect = mapWrap.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+
+      const dx = (localX - cx) * scale;
+      const dy = (localY - cy) * scale;
+
+      const rad = rotation * Math.PI / 180;
+      return {
+        x: cx + dx * Math.cos(rad) - dy * Math.sin(rad),
+        y: cy + dx * Math.sin(rad) + dy * Math.cos(rad)
+      };
+    }
+
     mapWrap.addEventListener("touchstart", (e) => {
       if (e.touches.length === 2) {
         e.preventDefault();
@@ -1924,6 +1986,11 @@
         gestureStartRotation = viewRotation;
         gestureStartTranslateX = viewTranslateX;
         gestureStartTranslateY = viewTranslateY;
+
+        const local = screenToLocalPoint(center.x, center.y);
+        gestureStartLocalX = local.x;
+        gestureStartLocalY = local.y;
+
         singleTouchDragging = false;
       } else if (e.touches.length === 1) {
         singleTouchDragging = true;
@@ -1944,8 +2011,23 @@
 
         viewScale = Math.max(0.8, Math.min(8, gestureStartScale * (currentDistance / gestureStartDistance)));
         viewRotation = gestureStartRotation + (currentAngle - gestureStartAngle);
-        viewTranslateX = gestureStartTranslateX + (currentCenter.x - gestureStartCenterX);
-        viewTranslateY = gestureStartTranslateY + (currentCenter.y - gestureStartCenterY);
+
+        // 2本指の中心を拡大縮小・回転の起点にする。
+        // 最初に指で挟んだ地図上の点が、操作中も2本指の中心に残るように平行移動を計算する。
+        const rect = mapWrap.getBoundingClientRect();
+        const currentCenterInWrap = {
+          x: currentCenter.x - rect.left,
+          y: currentCenter.y - rect.top
+        };
+        const projected = localToScreenWithoutTranslate(
+          gestureStartLocalX,
+          gestureStartLocalY,
+          viewScale,
+          viewRotation
+        );
+
+        viewTranslateX = currentCenterInWrap.x - projected.x;
+        viewTranslateY = currentCenterInWrap.y - projected.y;
 
         applyMapTransform();
       } else if (e.touches.length === 1 && singleTouchDragging) {
