@@ -537,11 +537,37 @@
 
       <div class="setting-card">
         <h3>スタンプラリー設定</h3>
+        <label class="toggle-wrap">
+          <input id="stampRallyEnabledInput" type="checkbox" checked />
+          スタンプラリー表示を有効にする
+        </label>
+        <div class="hint">OFFにすると、通常のデジタルフロアマップとして使いやすいように、上部のポイント欄・点数表示・ゴールQRを非表示にします。QRによる位置補正は使えます。</div>
         <div class="field">
           <label for="rallyGoalPointsInput">ゴール判定に必要なポイント</label>
           <input id="rallyGoalPointsInput" type="number" min="0" step="1" value="0" />
         </div>
         <div class="hint">例：10 と設定すると、表示は「0/10pt」になり、ゴールQRでは10pt以上で達成になります。0の場合は、点数付きスポットの合計を自動で必要ポイントにします。</div>
+      </div>
+
+      <div class="setting-card">
+        <h3>起動時ガイド編集</h3>
+        <div class="field">
+          <label for="guideTitleInput">タイトル</label>
+          <input id="guideTitleInput" type="text" />
+        </div>
+        <div class="field">
+          <label for="guideIntroInput">説明文</label>
+          <textarea id="guideIntroInput" rows="2"></textarea>
+        </div>
+        <div class="field">
+          <label for="guideStepsInput">手順（1行に1項目。「見出し｜本文」の形がおすすめ）</label>
+          <textarea id="guideStepsInput" rows="6"></textarea>
+        </div>
+        <div class="inline-actions">
+          <button type="button" onclick="saveGuideSettings()">ガイド文を保存</button>
+          <button type="button" onclick="previewGuideFromAdmin()">ガイドを確認表示</button>
+        </div>
+        <div class="hint">例：① 位置補正｜「位置補正」を押して、今いる場所を地図で1回タップします。</div>
       </div>
 
       <div class="slider-row">
@@ -578,7 +604,7 @@
       <textarea id="configOutput"></textarea>
       <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
         <input id="qrTextOutput" readonly placeholder="選択した地点の短いQR文字列が表示されます" style="flex:1; min-width:220px;" />
-        <button type="button" onclick="generateFinishQrText()" style="border:none; border-radius:12px; padding:10px 12px; font-weight:900; background:#fce7f3; color:#be185d;">ゴールQR</button>
+        <button id="goalQrButton" type="button" onclick="generateFinishQrText()" style="border:none; border-radius:12px; padding:10px 12px; font-weight:900; background:#fce7f3; color:#be185d;">ゴールQR</button>
       </div>
     </div>
   </div>
@@ -630,14 +656,9 @@
 
   <div id="firstGuide" class="first-guide">
     <div class="first-guide-card">
-      <h2>はじめて使う方へ</h2>
-      <p>最初の操作は2つだけです。現在地を置いて、その後に歩くかGPS追従を使います。</p>
-      <div class="guide-steps">
-        <div class="guide-step"><strong>① 位置補正</strong>「位置補正」を押して、今いる場所を地図で1回タップします。</div>
-        <div class="guide-step"><strong>② 追従開始</strong>GPS追従を選ぶと位置が動きます。設定の初期状態は「歩数」です。</div>
-        <div class="guide-step"><strong>③ ズレたら直す</strong>位置がズレたら、もう一度「位置補正」を押してタップします。</div>
-        <div class="guide-step"><strong>④ QR補正</strong>校内のQRコードを読み取ると、その地点に位置補正できます。ポイント付きQRならスタンプラリーの点数も入ります。</div>
-      </div>
+      <h2 id="guideTitleText">はじめて使う方へ</h2>
+      <p id="guideIntroText">最初の操作は2つだけです。現在地を置いて、その後に歩くかGPS追従を使います。</p>
+      <div class="guide-steps" id="guideStepsBox"></div>
       <div class="guide-actions">
         <button class="guide-secondary" type="button" onclick="dismissGuide(true)">次回は表示しない</button>
         <button class="guide-primary" type="button" onclick="dismissGuide(false)">はじめる</button>
@@ -672,6 +693,10 @@
     const headingBtn = document.getElementById("headingBtn");
     const adminCurrentFloor = document.getElementById("adminCurrentFloor");
     const rallyGoalPointsInput = document.getElementById("rallyGoalPointsInput");
+    const stampRallyEnabledInput = document.getElementById("stampRallyEnabledInput");
+    const guideTitleInput = document.getElementById("guideTitleInput");
+    const guideIntroInput = document.getElementById("guideIntroInput");
+    const guideStepsInput = document.getElementById("guideStepsInput");
     const widthMetersRange = document.getElementById("widthMetersRange");
     const heightMetersRange = document.getElementById("heightMetersRange");
     const mapNorthDegRange = document.getElementById("mapNorthDegRange");
@@ -687,6 +712,9 @@
     const adminSection = document.getElementById("adminSection");
     const stepLengthInput = document.getElementById("stepLengthInput");
     const firstGuide = document.getElementById("firstGuide");
+    const guideTitleText = document.getElementById("guideTitleText");
+    const guideIntroText = document.getElementById("guideIntroText");
+    const guideStepsBox = document.getElementById("guideStepsBox");
 
     let config = null;
     let currentFloor = null;
@@ -781,12 +809,109 @@
       statusChip.innerHTML = html.replace(/<br>/g, " / ");
     }
 
+    function isStampRallyEnabled() {
+      return config?.stampRallyEnabled !== false;
+    }
+
+    function applyStampRallyVisibility() {
+      const enabled = isStampRallyEnabled();
+
+      if (scoreChip) {
+        scoreChip.style.display =
+          enabled && localStorage.getItem(SCORE_PANEL_VISIBLE_KEY) !== "0"
+            ? "inline-flex"
+            : "none";
+      }
+
+      if (rallyGoalPointsInput) rallyGoalPointsInput.disabled = !enabled;
+
+      const goalBtn = document.getElementById("goalQrButton");
+      if (goalBtn) goalBtn.style.display = enabled ? "inline-block" : "none";
+
+      renderPoints();
+    }
+
+    function getGuideConfig() {
+      const defaultGuide = {
+        title: "はじめて使う方へ",
+        intro: "最初の操作は2つだけです。現在地を置いて、その後に歩くかGPS追従を使います。",
+        steps: [
+          { title: "① 位置補正", text: "「位置補正」を押して、今いる場所を地図で1回タップします。" },
+          { title: "② 追従開始", text: "GPS追従を選ぶと位置が動きます。設定の初期状態は「歩数」です。" },
+          { title: "③ ズレたら直す", text: "位置がズレたら、もう一度「位置補正」を押してタップします。" },
+          { title: "④ QR補正", text: "校内のQRコードを読み取ると、その地点に位置補正できます。ポイント付きQRならスタンプラリーの点数も入ります。" }
+        ]
+      };
+
+      if (!config.guide) config.guide = defaultGuide;
+      if (!Array.isArray(config.guide.steps)) config.guide.steps = defaultGuide.steps;
+      return config.guide;
+    }
+
+    function renderFirstGuideContent() {
+      const guide = getGuideConfig();
+      guideTitleText.textContent = guide.title || "はじめて使う方へ";
+      guideIntroText.textContent = guide.intro || "";
+      guideStepsBox.innerHTML = "";
+
+      (guide.steps || []).forEach((step, index) => {
+        const item = document.createElement("div");
+        item.className = "guide-step";
+        const title = step.title || `手順${index + 1}`;
+        const body = step.text || "";
+        item.innerHTML = `<strong>${title}</strong>${body}`;
+        guideStepsBox.appendChild(item);
+      });
+    }
+
+    function loadGuideInputs() {
+      if (!isAdmin || !guideTitleInput) return;
+      const guide = getGuideConfig();
+      guideTitleInput.value = guide.title || "";
+      guideIntroInput.value = guide.intro || "";
+      guideStepsInput.value = (guide.steps || [])
+        .map((step) => `${step.title || ""}｜${step.text || ""}`)
+        .join("\n");
+    }
+
+    function saveGuideSettings() {
+      if (!isAdmin) return;
+
+      const steps = (guideStepsInput.value || "")
+        .split(/\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line, index) => {
+          const parts = line.split("｜");
+          if (parts.length >= 2) {
+            return { title: parts[0].trim(), text: parts.slice(1).join("｜").trim() };
+          }
+          return { title: `手順${index + 1}`, text: line };
+        });
+
+      config.guide = {
+        title: guideTitleInput.value || "はじめて使う方へ",
+        intro: guideIntroInput.value || "",
+        steps
+      };
+
+      renderFirstGuideContent();
+      exportConfigToTextarea();
+      updateStatus("起動時ガイドを保存しました");
+    }
+
+    function previewGuideFromAdmin() {
+      saveGuideSettings();
+      toggleGuide(true);
+    }
+
     function toggleSettingsSheet(open) {
       settingsSheet.classList.toggle("open", open);
       sheetBackdrop.classList.toggle("open", open);
     }
 
     function toggleGuide(force = false) {
+      renderFirstGuideContent();
       if (force || !localStorage.getItem(GUIDE_KEY)) firstGuide.classList.add("show");
     }
 
@@ -904,6 +1029,8 @@
       const f = getFloorConfig(currentFloor);
       adminCurrentFloor.textContent = currentFloor;
       if (rallyGoalPointsInput) rallyGoalPointsInput.value = Number(config.rallyGoalPoints || 0);
+      if (stampRallyEnabledInput) stampRallyEnabledInput.checked = isStampRallyEnabled();
+      loadGuideInputs();
       widthMetersRange.value = f.widthMeters;
       heightMetersRange.value = f.heightMeters;
       mapNorthDegRange.value = f.mapNorthDeg;
@@ -1104,6 +1231,12 @@
     }
 
     function handleFinishQr() {
+      if (!isStampRallyEnabled()) {
+        showRallyMessage("スタンプラリー非表示", "現在は通常のフロアマップ表示です。スタンプラリーを使う場合は管理者モードで有効にしてください。");
+        updateStatus("スタンプラリー非表示");
+        return;
+      }
+
       const required = getRequiredPointTotal();
       const summary = getCollectedSummary();
       const remaining = Math.max(0, required - summary.total);
@@ -1118,6 +1251,7 @@
         showRallyMessage("受け取り済みです", "この端末では、すでに景品受け取り済みとして記録されています。");
         updateStatus("景品受け取り済み");
         updateScoreUI();
+      applyStampRallyVisibility();
         return;
       }
 
@@ -1154,7 +1288,10 @@
         <span class="rally-title">化学科デジタルスタンプラリー</span>
         <span class="rally-score">${finished ? "終了" : `${summary.total}/${required > 0 ? required : 0}pt`}</span>
       `;
-      scoreChip.style.display = localStorage.getItem(SCORE_PANEL_VISIBLE_KEY) === "0" ? "none" : "inline-flex";
+      scoreChip.style.display =
+        isStampRallyEnabled() && localStorage.getItem(SCORE_PANEL_VISIBLE_KEY) !== "0"
+          ? "inline-flex"
+          : "none";
     }
 
     function toggleScorePanel() {
@@ -1183,6 +1320,7 @@
 
     function awardPointForSpot(floor, point) {
       const p = normalizePointData(point);
+      if (!isStampRallyEnabled()) return;
       if (p.pointValue <= 0) return;
 
       const data = getCollectedData();
@@ -1239,8 +1377,11 @@
         el.style.left = `${offsetX + p.nx * drawW}px`;
         el.style.top = `${offsetY + p.ny * drawH}px`;
 
-        const pointText = p.pointValue > 0 && p.showPointValue ? `+${p.pointValue} pt` : (p.note || "");
-        const pinIcon = collected ? p.iconAfter : p.iconBefore;
+        const pointText =
+          isStampRallyEnabled() && p.pointValue > 0 && p.showPointValue
+            ? `+${p.pointValue} pt`
+            : (p.note || "");
+        const pinIcon = isStampRallyEnabled() && collected ? p.iconAfter : p.iconBefore;
         el.innerHTML = `
           <span class="spot-icon">${pinIcon}</span>
           <span class="spot-text">
@@ -2285,6 +2426,16 @@
       };
     }
 
+    if (stampRallyEnabledInput) {
+      stampRallyEnabledInput.addEventListener("change", () => {
+        config.stampRallyEnabled = !!stampRallyEnabledInput.checked;
+        applyStampRallyVisibility();
+        updateScoreUI();
+        exportConfigToTextarea();
+        updateStatus(config.stampRallyEnabled ? "スタンプラリー表示ON" : "通常フロアマップ表示");
+      });
+    }
+
     if (rallyGoalPointsInput) {
       rallyGoalPointsInput.addEventListener("change", () => {
         config.rallyGoalPoints = Number(rallyGoalPointsInput.value || 0);
@@ -2312,6 +2463,9 @@
 
       appTitleEl.textContent = config.appTitle || "川越工フロアマップ";
       if (!("rallyGoalPoints" in config)) config.rallyGoalPoints = 0;
+      if (!("stampRallyEnabled" in config)) config.stampRallyEnabled = true;
+      getGuideConfig();
+      renderFirstGuideContent();
 
       const params = new URLSearchParams(location.search);
       isAdmin = params.get("admin") === "1";
@@ -2386,5 +2540,3 @@
   </script>
 </body>
 </html>
-
-<!-- force redeploy v11-3 -->
